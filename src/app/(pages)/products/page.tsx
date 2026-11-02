@@ -1,9 +1,16 @@
-import apiServices from '@/services/apiServices'
-import React from 'react'
+import ProductCard from "@/components/product/ProductCard";
+import apiServices from "@/services/apiServices";
 
-export default function Products() {
-  apiServices.getProducts()
+export default async function Products() {
+  const products = (await apiServices.getProducts()).data;
+
   return (
-    <div>Products</div>
-  )
+    <div className="container">
+      <div className="grid grid-cols-4">
+        {products.map((product) => (
+<ProductCard product={product} key={product._id} />
+        ))}
+      </div>
+    </div>
+  );
 }
