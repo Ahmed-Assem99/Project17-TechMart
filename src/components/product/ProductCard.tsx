@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, ShoppingCart, Star } from "lucide-react";
+import { ChevronLeft, ChevronRight, LoaderCircle, ShoppingCart, Star } from "lucide-react";
 import { cn } from "cn";
 
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,8 @@ import {
 } from "@/components/ui/card";
 import { ProductI } from "@/interfaces/product";
 import { formatDate, formatPrice } from "@/lib/utils";
+import apiServices from "@/services/apiServices";
+import {toast} from "@/components/ui/toast"
 
 const MotionCard = motion.create(Card);
 
@@ -35,6 +37,21 @@ export default function ProductCard({ product }: { product: ProductI }) {
 
   function goTo(index: number) {
     setSlide([index, index > current ? 1 : -1]);
+  }
+
+  const [isAdding, setIsAdding] = useState(false);
+
+  async function addProductToCart(){
+    setIsAdding(true)
+    try {
+      const response = await apiServices.addProductToCart(product._id)
+      toast.add({
+        title:response.status ?? response.statusMsg,
+        description:response.message
+      })
+    } finally {
+      setIsAdding(false)
+    }
   }
 
   return (
@@ -135,9 +152,9 @@ export default function ProductCard({ product }: { product: ProductI }) {
 
       <CardFooter>
         <motion.div whileTap={{ scale: 0.95 }} className="w-full">
-          <Button className="w-full">
-            <ShoppingCart />
-            Add to cart
+          <Button onClick={addProductToCart} disabled={isAdding} className="w-full">
+            {isAdding ? <LoaderCircle className="animate-spin" /> : <ShoppingCart />}
+            {isAdding ? "Adding..." : "Add to cart"}
           </Button>
         </motion.div>
       </CardFooter>
