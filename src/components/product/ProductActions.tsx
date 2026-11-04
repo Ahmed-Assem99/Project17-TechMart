@@ -4,8 +4,10 @@ import { motion } from "framer-motion";
 import { Heart, Minus, Plus, ShoppingCart } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import AddToCartBtn from "./AddToCartBtn";
+import { ProductI } from "@/interfaces/product";
 
-export default function ProductActions({ maxQuantity }: { maxQuantity: number }) {
+export default function ProductActions({ maxQuantity,product }: { maxQuantity: number,product:ProductI }) {
   const [quantity, setQuantity] = useState(1);
   const outOfStock = maxQuantity <= 0;
 
@@ -36,10 +38,7 @@ export default function ProductActions({ maxQuantity }: { maxQuantity: number })
       </div>
 
       <motion.div whileTap={{ scale: 0.97 }} className="flex-1">
-        <Button className="h-12 w-full rounded-full text-base" disabled={outOfStock}>
-          <ShoppingCart />
-          {outOfStock ? "Out of stock" : "Add to cart"}
-        </Button>
+<AddToCartBtn {...product}/>
       </motion.div>
 
       <Button

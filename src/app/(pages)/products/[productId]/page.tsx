@@ -109,7 +109,7 @@ export default async function ProductDetails({params}:ProductDetailsProps) {
             </span>
           </div>
 
-          <ProductActions maxQuantity={product.quantity} />
+          <ProductActions maxQuantity={product.quantity} product={product}/>
 
           <div className="grid gap-3 sm:grid-cols-3">
             {perks.map(({ icon: Icon, title, text }) => (

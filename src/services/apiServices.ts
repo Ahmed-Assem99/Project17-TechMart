@@ -31,6 +31,35 @@ class ApiServices{
 
         return data;
     }
+
+    async getUserCart():Promise<CartResponse>{
+            const response = await fetch(process.env.NEXT_PUBLIC_BASE_URL+"/api/v2/cart",{
+            headers:this.#headers,
+
+        })
+        const data = await response.json()
+
+        return data;
+    }
+
+    async removeProductFromCart(productId:string):Promise<CartResponse>{
+            const response = await fetch(process.env.NEXT_PUBLIC_BASE_URL+"/api/v2/cart/"+productId,{
+            headers:this.#headers,
+            method:"delete"
+        })
+        const data = await response.json()
+
+        return data;
+    }
+    async clearProductsFromCart():Promise<CartResponse>{
+            const response = await fetch(process.env.NEXT_PUBLIC_BASE_URL+"/api/v2/cart",{
+            headers:this.#headers,
+            method:"delete"
+        })
+        const data = await response.json()
+
+        return data;
+    }
 }
 
 // "use cache" isn't allowed on class instance methods, so the cached fetch lives here
