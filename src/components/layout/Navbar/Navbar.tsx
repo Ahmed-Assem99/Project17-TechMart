@@ -46,6 +46,10 @@ const navItems = [
     href: "/brands",
     icon: Tag,
   },
+  {title:"Orders",
+    href:"/allorders",
+    icon:Tag
+  }
 ];
 
 const activeClassName = "text-[#64843f] font-bold";
