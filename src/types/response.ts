@@ -62,3 +62,12 @@ export interface Brand {
   image?:    string;
   category?: string;
 }
+
+export type CheckoutResponse={
+  "status":string;
+  "session":{
+    "url":string,
+    "success_url":string,
+    "cancel_url":string
+  }
+}

@@ -152,10 +152,10 @@ setNumOfCartItems(cart.numOfCartItems)
           </div>
         </dl>
 
-        <motion.div whileTap={{ scale: 0.97 }} className="mt-6">
-          <Button className="h-12 w-full rounded-full text-base">
+        <motion.div whileTap={{ scale: 0.97 }} className="mt-6 flex justify-center items-center">
+          <Link href={"/checkout/"+cart.cartId} className="h-full w-full px-5 py-4 font-bold rounded-full m-auto cursor-pointer text-center bg-[#9AE600]">
             Proceed to checkout
-          </Button>
+          </Link>
         </motion.div>
 
         <ul className="mt-6 flex flex-col gap-3 text-xs text-muted-foreground">
