@@ -60,6 +60,18 @@ class ApiServices{
 
         return data;
     }
+
+    async updateProductCount(productId:string,count:number):Promise<CartResponse>{
+            const response = await fetch(process.env.NEXT_PUBLIC_BASE_URL+"/api/v2/cart/"+productId,{
+            body:JSON.stringify({
+                count
+            }),
+            headers:this.#headers,
+            method:"put"
+        })
+        const data = await response.json()
+        return data;
+    }
 }
 
 // "use cache" isn't allowed on class instance methods, so the cached fetch lives here
