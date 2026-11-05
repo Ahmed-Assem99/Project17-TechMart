@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { useRef } from "react";
+import { useContext, useRef } from "react";
 import { motion } from "framer-motion";
 import { Minus, Plus, Trash2 } from "lucide-react";
 
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
 import { ProductElement } from "@/types/response";
 import apiServices from "@/services/apiServices";
+import { counterContext } from "@/contexts/counterContext";
 
 type CartItemProps = {
   item: ProductElement;
@@ -22,7 +23,7 @@ export default function CartItem({
   onRemove,
 }: CartItemProps) {
   const { product } = item;
-
+const {setNumOfCartItems}=useContext(counterContext)
   // WHAT IS useRef?
   // useRef is a small box that keeps a value between re-renders.
   // You read and write the value through `.current`.
@@ -69,6 +70,7 @@ export default function CartItem({
       if (response?.status === "success") {
         // The server accepted it, so remember this as the correct count.
         confirmedCount.current = newCount;
+        setNumOfCartItems(response.numOfCartItems)
       } else {
         // The request failed, but the screen already shows the new number.
         // Put back the last count the server accepted so the screen isn't wrong.
@@ -82,6 +84,7 @@ export default function CartItem({
     const response = await apiServices.removeProductFromCart(product._id);
     if (response.status === "success") {
       onRemove(product._id);
+      setNumOfCartItems(response.numOfCartItems)
     }
   }
 

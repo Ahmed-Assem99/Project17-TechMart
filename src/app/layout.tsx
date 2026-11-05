@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/layout/Navbar/Navbar";
 import Footer from "@/components/layout/Footer/Footer";
 import { Toaster } from "@/components/ui/toast";
+import MainProvider from "@/providers/MainProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -27,10 +28,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
-        <Navbar/>
-        {children}
-        <Footer/>
-        <Toaster/>
+<MainProvider>
+  {children}
+</MainProvider>
         </body>
     </html>
   );

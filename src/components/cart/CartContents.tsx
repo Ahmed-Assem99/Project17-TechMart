@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -15,8 +15,17 @@ import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/utils";
 import { CartResponse } from "@/types/response";
 import apiServices from "@/services/apiServices";
+import { counterContext } from "@/contexts/counterContext";
 
 export default function CartContents({ cart }: { cart: CartResponse }) {
+
+const {setNumOfCartItems}=useContext(counterContext)
+
+useEffect(()=>{
+setNumOfCartItems(cart.numOfCartItems)
+},[])
+
+
   const [items, setItems] = useState(cart.data?.products ?? []);
 
   const itemsCount = items.reduce((sum, item) => sum + item.count, 0);
@@ -37,12 +46,14 @@ export default function CartContents({ cart }: { cart: CartResponse }) {
     setItems((current) =>
       current.filter((item) => item.product._id !== productId),
     );
+
   }
 
   async function clearCart() {
     const response = await apiServices.clearProductsFromCart();
     if (response.status === "success") {
       setItems([]);
+      setNumOfCartItems(0)
     }
   }
 

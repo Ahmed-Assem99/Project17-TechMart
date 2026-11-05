@@ -1,4 +1,5 @@
 "use client";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   ChevronRight,
@@ -21,7 +22,8 @@ import Logo from "@/components/layout/Logo";
 import Link from "next/link";
 import { cn } from "cn";
 import { usePathname } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useContext } from "react";
+import { counterContext } from "@/contexts/counterContext";
 
 const navItems = [
   {
@@ -98,6 +100,7 @@ function ActiveMobileNavLinks() {
 }
 
 export default function Navbar() {
+  let {numOfCartItems}=useContext(counterContext)
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
       <div className="bg-foreground text-background">
@@ -126,11 +129,14 @@ export default function Navbar() {
             variant="ghost"
             size="icon"
             aria-label="Cart"
-            className="rounded-full"
+            className="relative rounded-full"
             nativeButton={false}
             render={<Link href="/cart" />}
           >
             <ShoppingCart />
+            <Badge className="absolute -top-1 -right-1/2 h-5 min-w-5 px-1 text-[10px] font-bold tabular-nums ring-2 ring-background">
+              {numOfCartItems}
+            </Badge>
           </Button>
           <div className="mx-1 hidden h-6 w-px bg-border lg:block" />
           <Button

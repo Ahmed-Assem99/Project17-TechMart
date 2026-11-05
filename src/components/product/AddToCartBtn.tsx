@@ -1,17 +1,20 @@
 "use client"
 import { LoaderCircle, ShoppingCart } from 'lucide-react'
-import React, { useState } from 'react'
+import React, { useContext, useState } from 'react'
 import { Button } from '../ui/button'
 import { toast } from '../ui/toast';
 import apiServices from '@/services/apiServices';
 import { ProductI } from '@/interfaces/product';
+import { counterContext } from '@/contexts/counterContext';
 
 export default function AddToCartBtn(product:ProductI) {
+  const {setNumOfCartItems}=useContext(counterContext)
       const [isAdding, setIsAdding] = useState(false);
      async function addProductToCart(){
     setIsAdding(true)
     try {
       const response = await apiServices.addProductToCart(product._id)
+      setNumOfCartItems(response.numOfCartItems)
       toast.add({
         title:response.status ?? response.statusMsg,
         description:response.message
