@@ -71,3 +71,15 @@ export type CheckoutResponse={
     "cancel_url":string
   }
 }
+export type SigninResponse = {
+  statusMsg?:string
+  message: string;
+  user:    User;
+  token:   string;
+}
+
+export interface User {
+  name:  string;
+  email: string;
+  role:  string;
+}

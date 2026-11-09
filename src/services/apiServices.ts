@@ -3,6 +3,7 @@ import {
   CheckoutResponse,
   ProductDetailsResponse,
   ProductResponse,
+  SigninResponse,
 } from "@/types/response";
 
 class ApiServices {
@@ -105,6 +106,21 @@ class ApiServices {
         method: "post",
       },
     );
+    const data = await response.json()
+    return data
+  }
+  async Signin(email:string,password:string):Promise<SigninResponse>{
+    const response = await fetch(process.env.NEXT_PUBLIC_BASE_URL+"/api/v1/auth/signin",{
+        method:"post",
+        body:JSON.stringify({
+            email,
+            password
+        }),
+        // Tells the API the body is JSON. Without it the API can't read email/password
+        headers:{
+            "content-type":"application/json"
+        }
+    })
     const data = await response.json()
     return data
   }
