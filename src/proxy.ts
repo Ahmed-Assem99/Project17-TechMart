@@ -11,10 +11,12 @@ export async function proxy(request: NextRequest) {
   const pathname= request.nextUrl.pathname
 
 
-if(isAuthenticated&& pathname==="/auth/signin"||pathname==="/auth/signup"){
+// The brackets matter: && runs before ||, so without them the
+// pathname check after || would apply to every user, logged in or not
+if(isAuthenticated && (pathname==="/auth/signin"||pathname==="/auth/signup")){
   return NextResponse.redirect(new URL("/products",request.url))
 }
-if(!isAuthenticated&& pathname==="/cart"||pathname==="/allorders"){
+if(!isAuthenticated && (pathname==="/cart"||pathname==="/allorders")){
   return NextResponse.redirect(new URL("/auth/signin",request.url))
 }
 
