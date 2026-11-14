@@ -25,6 +25,8 @@ import { usePathname } from "next/navigation";
 import { Suspense, useContext } from "react";
 import { counterContext } from "@/contexts/counterContext";
 import { signOut, useSession } from "next-auth/react";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 
 const navItems = [
   {
@@ -108,13 +110,15 @@ function ActiveDesktopNavLinks() {
 
   const session = useSession()
 
+const {count}=useSelector((state:RootState)=>state.counter)
+
   let { numOfCartItems } = useContext(counterContext);
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
       <div className="bg-foreground text-background">
         <p className="mx-auto flex max-w-7xl items-center justify-center gap-2 px-6 py-2 text-xs font-medium sm:px-4">
           <Truck className="size-3.5" />
-          Free delivery on orders over 500 EGP
+          Free delivery on orders over 500 EGP {count}
         </p>
       </div>
       <nav className="mx-auto flex h-16 w-full max-w-7xl items-center gap-6 px-6 sm:px-4">
