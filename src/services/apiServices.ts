@@ -1,17 +1,47 @@
 import {
+  AddressesResponse,
+  AddressInput,
+  AddressResponse,
   CartResponse,
   CheckoutResponse,
+  ShippingAddress,
   ProductDetailsResponse,
+  OrdersResponse,
   ProductResponse,
   SigninResponse,
+  VerifyTokenResponse,
 } from "@/types/response";
 
 class ApiServices {
-  #headers = {
-    token:
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhZTlkN2NhY2ZlYTNkMDAxMzA4Mjk3MyIsIm5hbWUiOiJBaG1lZCBBc3NlbSIsInJvbGUiOiJ1c2VyIiwiaWF0IjoxNzkzNzEwMDI2LCJleHAiOjE4MDE0ODYwMjZ9.caTLXoHQfobIPc412EJN2yA4Uj0mUMLRO-_U9F6XuvM",
-    "content-type": "application/json",
-  };
+  // Builds the headers for every request with the token of whoever is logged in.
+  // The token was saved in the session by the jwt/session callbacks in src/lib/auth.ts.
+  // apiServices is used in two places, and each one reads the session differently:
+  async #getHeaders() {
+    let token: string | undefined;
+
+    if (typeof window === "undefined") {
+      // SERVER (e.g. cart/page.tsx, allorders/page.tsx):
+      // there is no browser here, so getServerSession reads the
+      // NextAuth cookie that came with the page request
+      const { getServerSession } = await import("next-auth");
+      const { authOptions } = await import("@/lib/auth");
+      const session = await getServerSession(authOptions);
+      token = session?.user.token;
+    } else {
+      // BROWSER (e.g. AddToCartBtn, CartItem, checkout page):
+      // getSession asks our own /api/auth/session route for the session
+      const { getSession } = await import("next-auth/react");
+      const session = await getSession();
+      token = session?.user.token;
+    }
+
+    // await import(...) loads these only when this runs, so the browser never
+    // downloads the server-only code and the two files don't import each other at load time
+    return {
+      token: token ?? "", // logged out -> empty token -> the API answers "please login"
+      "content-type": "application/json",
+    };
+  }
 
   async getProducts(): Promise<ProductResponse> {
     const response = await fetch(
@@ -32,7 +62,7 @@ class ApiServices {
         body: JSON.stringify({
           productId,
         }),
-        headers: this.#headers,
+        headers: await this.#getHeaders(),
         method: "post",
       },
     );
@@ -45,7 +75,7 @@ class ApiServices {
     const response = await fetch(
       process.env.NEXT_PUBLIC_BASE_URL + "/api/v2/cart",
       {
-        headers: this.#headers,
+        headers: await this.#getHeaders(),
       },
     );
     const data = await response.json();
@@ -57,7 +87,7 @@ class ApiServices {
     const response = await fetch(
       process.env.NEXT_PUBLIC_BASE_URL + "/api/v2/cart/" + productId,
       {
-        headers: this.#headers,
+        headers: await this.#getHeaders(),
         method: "delete",
       },
     );
@@ -69,7 +99,7 @@ class ApiServices {
     const response = await fetch(
       process.env.NEXT_PUBLIC_BASE_URL + "/api/v2/cart",
       {
-        headers: this.#headers,
+        headers: await this.#getHeaders(),
         method: "delete",
       },
     );
@@ -88,7 +118,7 @@ class ApiServices {
         body: JSON.stringify({
           count,
         }),
-        headers: this.#headers,
+        headers: await this.#getHeaders(),
         method: "put",
       },
     );
@@ -96,13 +126,16 @@ class ApiServices {
     return data;
   }
 
-  async Checkout(cartId: string, shippingAddress: any):Promise<CheckoutResponse> {
+  async Checkout(
+    cartId: string,
+    shippingAddress: { shippingAddress: ShippingAddress },
+  ): Promise<CheckoutResponse> {
     const response = await fetch(
       process.env.NEXT_PUBLIC_BASE_URL +
         `/api/v1/orders/checkout-session/${cartId}?url=http://localhost:3000`,
       {
         body: JSON.stringify(shippingAddress),
-        headers: this.#headers,
+        headers: await this.#getHeaders(),
         method: "post",
       },
     );
@@ -123,6 +156,97 @@ class ApiServices {
     })
     const data = await response.json()
     return data
+  }
+
+  // Step 1: send the token, get back the user it belongs to (decoded.id is the user id)
+  async verifyToken(): Promise<VerifyTokenResponse> {
+    const response = await fetch(
+      process.env.NEXT_PUBLIC_BASE_URL + "/api/v1/auth/verifyToken",
+      {
+        headers: await this.#getHeaders(),
+      },
+    );
+    const data = await response.json();
+    return data;
+  }
+
+  // Step 2: use that user id to get the user's orders
+  async getUserOrders(userId: string): Promise<OrdersResponse> {
+    const response = await fetch(
+      process.env.NEXT_PUBLIC_BASE_URL + "/api/v1/orders/user/" + userId,
+    );
+    const data = await response.json();
+    return data;
+  }
+
+  // ---------- Addresses (all need the user's token) ----------
+
+  async getAddresses(): Promise<AddressesResponse> {
+    const response = await fetch(
+      process.env.NEXT_PUBLIC_BASE_URL + "/api/v1/addresses",
+      {
+        headers: await this.#getHeaders(),
+      },
+    );
+    const data = await response.json();
+    return data;
+  }
+
+  // Returns ONE address by its id
+  async getAddress(addressId: string): Promise<AddressResponse> {
+    const response = await fetch(
+      process.env.NEXT_PUBLIC_BASE_URL + "/api/v1/addresses/" + addressId,
+      {
+        headers: await this.#getHeaders(),
+      },
+    );
+    const data = await response.json();
+    return data;
+  }
+
+  // Returns the FULL list, with the new address at the end
+  async addAddress(address: AddressInput): Promise<AddressesResponse> {
+    const response = await fetch(
+      process.env.NEXT_PUBLIC_BASE_URL + "/api/v1/addresses",
+      {
+        body: JSON.stringify(address),
+        headers: await this.#getHeaders(),
+        method: "post",
+      },
+    );
+    const data = await response.json();
+    return data;
+  }
+
+  // Returns only the edited address.
+  // Careful: the API ignores "name" here, it only updates details/phone/city
+  async updateAddress(
+    addressId: string,
+    address: AddressInput,
+  ): Promise<AddressResponse> {
+    const response = await fetch(
+      process.env.NEXT_PUBLIC_BASE_URL + "/api/v1/addresses/" + addressId,
+      {
+        body: JSON.stringify(address),
+        headers: await this.#getHeaders(),
+        method: "put",
+      },
+    );
+    const data = await response.json();
+    return data;
+  }
+
+  // Returns the FULL list without the removed address
+  async removeAddress(addressId: string): Promise<AddressesResponse> {
+    const response = await fetch(
+      process.env.NEXT_PUBLIC_BASE_URL + "/api/v1/addresses/" + addressId,
+      {
+        headers: await this.#getHeaders(),
+        method: "delete",
+      },
+    );
+    const data = await response.json();
+    return data;
   }
 }
 

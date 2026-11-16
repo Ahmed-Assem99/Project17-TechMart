@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   ChevronRight,
   LayoutGrid,
+  MapPin,
   Menu,
   Package,
   Search,
@@ -25,8 +26,9 @@ import { usePathname } from "next/navigation";
 import { Suspense, useContext } from "react";
 import { counterContext } from "@/contexts/counterContext";
 import { signOut, useSession } from "next-auth/react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
+import { increment } from "@/redux/slices/counterSlice";
 
 const navItems = [
   {
@@ -50,6 +52,7 @@ const navItems = [
     icon: Tag,
   },
   { title: "Orders", href: "/allorders", icon: Tag },
+  { title: "Addresses", href: "/addresses", icon: MapPin },
 ];
 
 const activeClassName = "text-[#64843f] font-bold";
@@ -88,7 +91,7 @@ function ActiveMobileNavLinks() {
 export default function Navbar() {
   function DesktopNavLinks({ pathName }: { pathName: string }) {
   return navItems.filter((el)=>{
-    return !(session.status=="unauthenticated"&&(el.href=="/cart"||el.href=="/allorders"))
+    return !(session.status=="unauthenticated"&&(el.href=="/cart"||el.href=="/allorders"||el.href=="/addresses"))
   }).map((item) => (
     <Link
       key={item.title}
@@ -111,15 +114,17 @@ function ActiveDesktopNavLinks() {
   const session = useSession()
 
 const {count}=useSelector((state:RootState)=>state.counter)
-
+const dispatch = useDispatch()
   let { numOfCartItems } = useContext(counterContext);
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
       <div className="bg-foreground text-background">
         <p className="mx-auto flex max-w-7xl items-center justify-center gap-2 px-6 py-2 text-xs font-medium sm:px-4">
           <Truck className="size-3.5" />
-          Free delivery on orders over 500 EGP {count}
+          Free delivery on orders over 500 EGP 
         </p>
+        {/* <Button onClick={()=>dispatch(increment())}>
+        </Button> */}
       </div>
       <nav className="mx-auto flex h-16 w-full max-w-7xl items-center gap-6 px-6 sm:px-4">
         <Logo className="flex-1" />

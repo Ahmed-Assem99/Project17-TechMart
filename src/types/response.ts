@@ -65,6 +65,8 @@ export interface Brand {
 
 export type CheckoutResponse={
   "status":string;
+  "message"?:string; // only on errors
+  "statusMsg"?:string; // "fail" on errors
   "session":{
     "url":string,
     "success_url":string,
@@ -82,4 +84,90 @@ export interface User {
   name:  string;
   email: string;
   role:  string;
+}
+
+// GET /api/v1/auth/verifyToken -> who owns this token
+export type VerifyTokenResponse = {
+  message: string; // "verified" when the token is valid
+  statusMsg?: string; // "fail" when the token is invalid
+  decoded: {
+    id:   string; // the user id we need for the orders API
+    name: string;
+    role: string;
+    iat:  number; // issued at (seconds)
+    exp:  number; // expires at (seconds)
+  };
+}
+
+// GET /api/v1/orders/user/:userId -> returns a plain array of these (no wrapper object)
+export type OrdersResponse = OrderI[]
+
+export interface OrderI {
+  _id:               string;
+  id:                number; // short readable order number
+  user:              { _id: string; name: string; email: string; phone: string };
+  cartItems:         OrderItem[];
+  shippingAddress?:  ShippingAddress; // some old orders don't have one
+  taxPrice:          number;
+  shippingPrice:     number;
+  totalOrderPrice:   number;
+  paymentMethodType: "cash" | "card";
+  isPaid:            boolean;
+  isDelivered:       boolean;
+  paidAt?:           string;
+  createdAt:         string;
+  updatedAt:         string;
+}
+
+export interface OrderItem {
+  _id:     string;
+  count:   number;
+  price:   number; // price of ONE piece
+  product: {
+    _id:            string;
+    id:             string;
+    title:          string;
+    imageCover:     string;
+    category:       Brand;
+    brand:          Brand;
+    subcategory:    Brand[];
+    ratingsAverage: number;
+    ratingsQuantity: number;
+  };
+}
+
+// A saved address from /api/v1/addresses
+export interface AddressI {
+  _id:     string;
+  name:    string; // a label the user picks, e.g. "Home" or "Work"
+  details: string;
+  phone:   string;
+  city:    string;
+}
+
+// What we send when adding/editing an address (no _id, the API creates it)
+export type AddressInput = Omit<AddressI, "_id">
+
+// GET list, POST add, and DELETE all return the user's FULL list of addresses
+export type AddressesResponse = {
+  status:     string; // "success"
+  message?:   string;
+  results?:   number;
+  data:       AddressI[];
+  statusMsg?: string; // "fail" on errors
+}
+
+// GET one and PUT edit return just that ONE address
+export type AddressResponse = {
+  status:     string;
+  message?:   string;
+  data:       AddressI;
+  statusMsg?: string;
+}
+
+export interface ShippingAddress {
+  details:     string;
+  phone:       string;
+  city:        string;
+  postalCode?: string;
 }

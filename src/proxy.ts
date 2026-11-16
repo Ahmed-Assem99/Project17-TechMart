@@ -16,7 +16,7 @@ export async function proxy(request: NextRequest) {
 if(isAuthenticated && (pathname==="/auth/signin"||pathname==="/auth/signup")){
   return NextResponse.redirect(new URL("/products",request.url))
 }
-if(!isAuthenticated && (pathname==="/cart"||pathname==="/allorders")){
+if(!isAuthenticated && (pathname==="/cart"||pathname==="/allorders"||pathname==="/addresses"||pathname.startsWith("/checkout"))){
   return NextResponse.redirect(new URL("/auth/signin",request.url))
 }
 
@@ -24,5 +24,6 @@ return NextResponse.next()
 }
 
 export const config = {
-matcher: ['/cart',"/allorders","/auth/signin","/auth/signup"],
+// "/checkout/:path*" = /checkout and anything after it, like /checkout/<cartId>
+matcher: ['/cart',"/allorders","/addresses","/checkout/:path*","/auth/signin","/auth/signup"],
 }

@@ -7,7 +7,6 @@ import { z } from "zod";
 import { AnimatePresence, motion, type Variants } from "framer-motion";
 import {
   ArrowRight,
-  CircleAlert,
   Eye,
   EyeOff,
   LoaderCircle,
@@ -17,6 +16,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import FieldError from "@/components/form/FieldError";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
@@ -45,27 +45,6 @@ const iconClassName =
   "pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground transition-colors group-focus-within:text-foreground";
 const inputClassName =
   "h-12 rounded-2xl bg-muted/50 pl-11 shadow-xs transition-all hover:bg-muted/70 focus-visible:border-primary focus-visible:bg-background focus-visible:ring-primary/25 dark:bg-input/30";
-
-function FieldError({ id, message }: { id: string; message?: string }) {
-  return (
-    <AnimatePresence initial={false}>
-      {message && (
-        <motion.p
-          id={id}
-          role="alert"
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          exit={{ opacity: 0, height: 0 }}
-          transition={{ duration: 0.2 }}
-          className="flex items-center gap-1.5 overflow-hidden text-xs font-medium text-destructive"
-        >
-          <CircleAlert className="size-3.5 shrink-0" />
-          {message}
-        </motion.p>
-      )}
-    </AnimatePresence>
-  );
-}
 
 export default function SigninForm() {
   const [showPassword, setShowPassword] = useState(false);
