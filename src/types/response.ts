@@ -1,13 +1,14 @@
-import { ProductI } from "@/interfaces/product";
+import { BrandI, CategoryI, ProductI, SubcategoryI } from "@/interfaces/product";
 
-type ResponseT<T> = {
+// The shape every list endpoint returns (products, categories, brands, ...)
+export type ResponseT<T> = {
   results: number;
   metadata: {
     currentPage: number;
     numberOfPages: number;
     limit: number;
-    nextPage: number;
-    prevPage:number;
+    nextPage?: number; // missing on the last page
+    prevPage?: number; // missing on the first page
   };
   data: T[];
 };
@@ -15,6 +16,14 @@ type ResponseT<T> = {
 
 export type ProductResponse = ResponseT<ProductI>
 export type ProductDetailsResponse = {data:ProductI}
+
+export type CategoriesResponse = ResponseT<CategoryI>
+export type SubcategoriesResponse = ResponseT<SubcategoryI>
+export type BrandsResponse = ResponseT<BrandI>
+
+// GET one category/brand by id. A wrong id gives 404 with statusMsg "fail" and no data
+export type CategoryResponse = { data?: CategoryI; statusMsg?: string; message?: string }
+export type BrandResponse = { data?: BrandI; statusMsg?: string; message?: string }
 
 export type CartResponse = {
   status:         string;
@@ -84,6 +93,14 @@ export interface User {
   name:  string;
   email: string;
   role:  string;
+}
+
+// POST /api/v2/orders/:cartId -> a cash order, created right away (no payment page)
+export type CashOrderResponse = {
+  status:     string; // "success"
+  data?:      OrderI; // the new order
+  message?:   string; // only on errors
+  statusMsg?: string; // "fail" on errors
 }
 
 // GET /api/v1/auth/verifyToken -> who owns this token

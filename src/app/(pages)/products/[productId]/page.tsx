@@ -44,7 +44,7 @@ export default async function ProductDetails({params}:ProductDetailsProps) {
         <ChevronRight className="size-4" />
         <Link href="/products" className="hover:text-foreground">Products</Link>
         <ChevronRight className="size-4" />
-        <Link href="/categories" className="hover:text-foreground">{product.category.name}</Link>
+        <Link href={`/categories/${product.category._id}`} className="hover:text-foreground">{product.category.name}</Link>
         <ChevronRight className="size-4" />
         <span className="line-clamp-1 font-medium text-foreground">{product.title}</span>
       </nav>
@@ -66,7 +66,7 @@ export default async function ProductDetails({params}:ProductDetailsProps) {
             </div>
             <h1 className="text-3xl font-bold tracking-tight text-balance sm:text-4xl">{product.title}</h1>
             <p className="text-sm text-muted-foreground">
-              by <Link href="/brands" className="font-medium text-foreground hover:underline">{product.brand.name}</Link>
+              by <Link href={`/brands/${product.brand._id}`} className="font-medium text-foreground hover:underline">{product.brand.name}</Link>
             </p>
             <div className="flex flex-wrap items-center gap-3 text-sm">
               <div className="flex items-center gap-0.5">

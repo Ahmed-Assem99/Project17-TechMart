@@ -1,15 +1,62 @@
 "use client";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, CircleAlert, LoaderCircle, Phone, Plus } from "lucide-react";
+import {
+  Banknote,
+  Check,
+  CircleAlert,
+  CreditCard,
+  LoaderCircle,
+  Phone,
+  Plus,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
 import AddressForm from "@/components/addresses/AddressForm";
 import { AddressIcon } from "@/components/addresses/AddressCard";
+import { counterContext } from "@/contexts/counterContext";
 import apiServices from "@/services/apiServices";
 import { AddressI, AddressInput } from "@/types/response";
 import { cn } from "cn";
+
+type PaymentMethod = "card" | "cash";
+
+const paymentMethods = [
+  {
+    value: "card",
+    title: "Pay with card",
+    text: "Secure online payment with Stripe",
+    icon: CreditCard,
+  },
+  {
+    value: "cash",
+    title: "Cash on delivery",
+    text: "Pay when your order arrives",
+    icon: Banknote,
+  },
+] as const; // "as const" keeps value as "card" | "cash" instead of plain string
+
+// The look of a selectable card (address or payment method)
+const optionClassName =
+  "flex cursor-pointer items-start gap-4 rounded-2xl bg-card p-4 ring-1 ring-foreground/10 transition-all hover:ring-foreground/25 has-focus-visible:ring-2 has-focus-visible:ring-ring";
+const selectedOptionClassName = "bg-primary/5 ring-2 ring-primary hover:ring-primary";
+
+// The round check mark on the right of a selectable card
+function SelectedMark({ isSelected }: { isSelected: boolean }) {
+  return (
+    <span
+      className={cn(
+        "mt-1 flex size-5 shrink-0 items-center justify-center rounded-full ring-1 ring-foreground/25 transition-colors",
+        isSelected && "bg-primary text-primary-foreground ring-primary",
+      )}
+    >
+      {isSelected && <Check className="size-3.5" strokeWidth={3} />}
+    </span>
+  );
+}
 
 type CheckoutFormProps = {
   cartId: string;
@@ -22,8 +69,12 @@ export default function CheckoutForm({ cartId, initialAddresses }: CheckoutFormP
   const [selectedId, setSelectedId] = useState(initialAddresses[0]?._id ?? "");
   // No saved addresses yet -> show the "new address" form straight away
   const [isAddingNew, setIsAddingNew] = useState(initialAddresses.length === 0);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
   const [isPlacing, setIsPlacing] = useState(false);
   const [error, setError] = useState("");
+  const router = useRouter();
+  const { setNumOfCartItems } = useContext(counterContext);
+  const isCash = paymentMethod === "cash";
 
   // A new address typed at checkout is also saved to the address book
   async function handleAddNew(values: AddressInput): Promise<string | void> {
@@ -34,7 +85,7 @@ export default function CheckoutForm({ cartId, initialAddresses }: CheckoutFormP
     setIsAddingNew(false);
   }
 
-  async function handleContinueToPayment() {
+  async function handlePlaceOrder() {
     if (!selectedId) return;
     setIsPlacing(true);
     setError("");
@@ -45,16 +96,31 @@ export default function CheckoutForm({ cartId, initialAddresses }: CheckoutFormP
         throw new Error(addressResponse.message ?? "Couldn't load the selected address");
       }
       const { details, phone, city } = addressResponse.data;
+      const shippingAddress = { details, phone, city };
 
-      // 2. Send that address to the checkout API
-      const response = await apiServices.Checkout(cartId, {
-        shippingAddress: { details, phone, city },
-      });
+      if (isCash) {
+        // 2a. CASH: the order is created right away and the API empties the cart
+        const response = await apiServices.createCashOrder(cartId, { shippingAddress });
+        if (response.status !== "success") throw new Error(response.message);
+        setNumOfCartItems(0); // the navbar badge: the cart is empty now
+        toast.add({ title: "Order placed", description: "You'll pay in cash when it arrives." });
+        router.push("/allorders");
+        return; // keep the button in its loading state while the page changes
+      }
+
+      // 2b. CARD: create a Stripe session and go to Stripe's payment page
+      // (a different website, so window.location instead of router.push)
+      const response = await apiServices.Checkout(cartId, { shippingAddress });
       if (response.status !== "success") throw new Error(response.message);
-      // Go to Stripe's payment page (a full page change, so no router.push)
       window.location.href = response.session.url;
     } catch (err) {
-      setError(err instanceof Error && err.message ? err.message : "Couldn't start the payment. Please try again.");
+      setError(
+        err instanceof Error && err.message
+          ? err.message
+          : isCash
+            ? "Couldn't place your order. Please try again."
+            : "Couldn't start the payment. Please try again.",
+      );
       setIsPlacing(false);
     }
   }
@@ -83,10 +149,7 @@ export default function CheckoutForm({ cartId, initialAddresses }: CheckoutFormP
               return (
                 <label
                   key={address._id}
-                  className={cn(
-                    "flex cursor-pointer items-start gap-4 rounded-2xl bg-card p-4 ring-1 ring-foreground/10 transition-all hover:ring-foreground/25 has-focus-visible:ring-2 has-focus-visible:ring-ring",
-                    isSelected && "bg-primary/5 ring-2 ring-primary hover:ring-primary",
-                  )}
+                  className={cn(optionClassName, isSelected && selectedOptionClassName)}
                 >
                   {/* The real radio is hidden; the card around it is what you see and click */}
                   <input
@@ -119,14 +182,7 @@ export default function CheckoutForm({ cartId, initialAddresses }: CheckoutFormP
                       {address.phone}
                     </span>
                   </span>
-                  <span
-                    className={cn(
-                      "mt-1 flex size-5 shrink-0 items-center justify-center rounded-full ring-1 ring-foreground/25 transition-colors",
-                      isSelected && "bg-primary text-primary-foreground ring-primary",
-                    )}
-                  >
-                    {isSelected && <Check className="size-3.5" strokeWidth={3} />}
-                  </span>
+                  <SelectedMark isSelected={isSelected} />
                 </label>
               );
             })}
@@ -168,6 +224,43 @@ export default function CheckoutForm({ cartId, initialAddresses }: CheckoutFormP
         </AnimatePresence>
       </section>
 
+      <section className="rounded-3xl bg-muted/40 p-6 ring-1 ring-foreground/10 sm:p-8">
+        <h2 className="mb-5 text-lg font-semibold">Payment method</h2>
+        <fieldset className="grid gap-3 sm:grid-cols-2">
+          <legend className="sr-only">Choose how to pay</legend>
+          {paymentMethods.map((method) => {
+            const isSelected = paymentMethod === method.value;
+            return (
+              <label
+                key={method.value}
+                className={cn(optionClassName, isSelected && selectedOptionClassName)}
+              >
+                <input
+                  type="radio"
+                  name="payment"
+                  value={method.value}
+                  checked={isSelected}
+                  // Same full-page-load fix as the address radios above
+                  ref={(radio) => {
+                    if (radio) radio.checked = isSelected;
+                  }}
+                  onChange={() => setPaymentMethod(method.value)}
+                  className="sr-only"
+                />
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/15">
+                  <method.icon className="size-4.5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold">{method.title}</span>
+                  <span className="block text-sm text-muted-foreground">{method.text}</span>
+                </span>
+                <SelectedMark isSelected={isSelected} />
+              </label>
+            );
+          })}
+        </fieldset>
+      </section>
+
       {error && (
         <p role="alert" className="flex items-center gap-2 rounded-2xl bg-destructive/10 px-4 py-3 text-sm font-medium text-destructive">
           <CircleAlert className="size-4 shrink-0" />
@@ -179,14 +272,20 @@ export default function CheckoutForm({ cartId, initialAddresses }: CheckoutFormP
         <Button
           className="h-12 w-full rounded-full text-base"
           disabled={!selectedId || isAddingNew || isPlacing}
-          onClick={handleContinueToPayment}
+          onClick={handlePlaceOrder}
         >
           {isPlacing && <LoaderCircle className="animate-spin" />}
-          {isPlacing ? "Redirecting to payment..." : "Continue to payment"}
+          {isPlacing
+            ? isCash
+              ? "Placing your order..."
+              : "Redirecting to payment..."
+            : isCash
+              ? "Place order"
+              : "Continue to payment"}
         </Button>
         {isAddingNew && (
           <p className="text-center text-xs text-muted-foreground">
-            Save the new address first, then continue to payment.
+            Save the new address first, then {isCash ? "place your order" : "continue to payment"}.
           </p>
         )}
       </div>

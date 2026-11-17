@@ -2,15 +2,22 @@ import {
   AddressesResponse,
   AddressInput,
   AddressResponse,
+  BrandResponse,
   CartResponse,
+  CashOrderResponse,
+  CategoriesResponse,
+  CategoryResponse,
   CheckoutResponse,
   ShippingAddress,
   ProductDetailsResponse,
   OrdersResponse,
   ProductResponse,
+  ResponseT,
   SigninResponse,
+  SubcategoriesResponse,
   VerifyTokenResponse,
 } from "@/types/response";
+import { BrandI, ProductI } from "@/interfaces/product";
 
 class ApiServices {
   // Builds the headers for every request with the token of whoever is logged in.
@@ -142,6 +149,24 @@ class ApiServices {
     const data = await response.json()
     return data
   }
+  // Cash on delivery: creates the order straight away (no Stripe page).
+  // The API also empties the user's cart when it succeeds
+  async createCashOrder(
+    cartId: string,
+    shippingAddress: { shippingAddress: ShippingAddress },
+  ): Promise<CashOrderResponse> {
+    const response = await fetch(
+      process.env.NEXT_PUBLIC_BASE_URL + "/api/v2/orders/" + cartId,
+      {
+        body: JSON.stringify(shippingAddress),
+        headers: await this.#getHeaders(),
+        method: "post",
+      },
+    );
+    const data = await response.json();
+    return data;
+  }
+
   async Signin(email:string,password:string):Promise<SigninResponse>{
     const response = await fetch(process.env.NEXT_PUBLIC_BASE_URL+"/api/v1/auth/signin",{
         method:"post",
@@ -177,6 +202,76 @@ class ApiServices {
     );
     const data = await response.json();
     return data;
+  }
+
+  // ---------- Categories & brands (public, no token needed) ----------
+
+  // The API sends at most 50 items per request (there are 56 products, 54 brands),
+  // so this asks for page 1, sees how many pages exist, then gets the rest at the same time
+  async #getAllPages<T>(path: string): Promise<T[]> {
+    const separator = path.includes("?") ? "&" : "?";
+    const getPage = async (page: number): Promise<ResponseT<T>> => {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BASE_URL}${path}${separator}limit=50&page=${page}`,
+      );
+      return response.json();
+    };
+
+    const firstPage = await getPage(1);
+    const otherPageNumbers = Array.from(
+      { length: (firstPage.metadata?.numberOfPages ?? 1) - 1 },
+      (_, index) => index + 2, // [2, 3, ...]
+    );
+    const otherPages = await Promise.all(otherPageNumbers.map(getPage));
+
+    // [[...page 1], [...page 2]] -> [...all items]
+    return [firstPage, ...otherPages].flatMap((page) => page.data ?? []);
+  }
+
+  async getCategories(): Promise<CategoriesResponse> {
+    const response = await fetch(
+      process.env.NEXT_PUBLIC_BASE_URL + "/api/v1/categories",
+    );
+    const data = await response.json();
+    return data;
+  }
+
+  async getCategory(categoryId: string): Promise<CategoryResponse> {
+    const response = await fetch(
+      process.env.NEXT_PUBLIC_BASE_URL + "/api/v1/categories/" + categoryId,
+    );
+    const data = await response.json();
+    return data;
+  }
+
+  // Plain /subcategories returns nothing on this API, so we always filter by category
+  async getSubcategories(categoryId: string): Promise<SubcategoriesResponse> {
+    const response = await fetch(
+      process.env.NEXT_PUBLIC_BASE_URL + "/api/v1/subcategories?category=" + categoryId,
+    );
+    const data = await response.json();
+    return data;
+  }
+
+  // All brands from every page
+  getBrands(): Promise<BrandI[]> {
+    return this.#getAllPages<BrandI>("/api/v1/brands");
+  }
+
+  async getBrand(brandId: string): Promise<BrandResponse> {
+    const response = await fetch(
+      process.env.NEXT_PUBLIC_BASE_URL + "/api/v1/brands/" + brandId,
+    );
+    const data = await response.json();
+    return data;
+  }
+
+  // All products, or only one category's / brand's products
+  getAllProducts(filter: { category?: string; brand?: string } = {}): Promise<ProductI[]> {
+    let path = "/api/v1/products";
+    if (filter.category) path += "?category[in]=" + filter.category;
+    else if (filter.brand) path += "?brand=" + filter.brand;
+    return this.#getAllPages<ProductI>(path);
   }
 
   // ---------- Addresses (all need the user's token) ----------
