@@ -98,13 +98,17 @@ cd Project17-TechMart
 npm install
 ```
 
-Create a `.env.local` file in the project root:
+Copy the example environment file and fill in the values:
 
 ```bash
-NEXT_PUBLIC_BASE_URL=https://ecommerce.routemisr.com
-AUTH_SECRET=your-random-secret          # generate one with: openssl rand -base64 32
-NEXTAUTH_URL=http://localhost:3000      # your site's URL in production
+cp .env.example .env.local
 ```
+
+| Variable | Secret? | What it is |
+| --- | --- | --- |
+| `NEXT_PUBLIC_BASE_URL` | No | Base URL of the e-commerce API |
+| `AUTH_SECRET` | **Yes** | Encrypts the login cookies. Generate one with `openssl rand -base64 32` |
+| `NEXTAUTH_URL` | No | Address of the site (`http://localhost:3000` locally) |
 
 Then start the development server and open [http://localhost:3000](http://localhost:3000):
 
@@ -121,7 +125,7 @@ npm run dev
 
 ## Deployment
 
-The app deploys to [Vercel](https://vercel.com) as is. Add the three environment variables above in the project settings, with `NEXTAUTH_URL` set to the deployed URL.
+The app deploys to [Vercel](https://vercel.com) as is. Add the environment variables above in the project settings, with `NEXTAUTH_URL` set to the deployed URL.
 
 ## Roadmap
 
