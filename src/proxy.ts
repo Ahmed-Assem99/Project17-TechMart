@@ -5,7 +5,9 @@ import { NextRequest } from 'next/server'
 // This function can be marked `async` if using `await` inside
 export async function proxy(request: NextRequest) {
 
-  const token = await getToken({req:request})
+  // Same secret as authOptions in src/lib/auth.ts. Without it getToken looks for
+  // NEXTAUTH_SECRET first, and a different value there would sign everyone out
+  const token = await getToken({req:request, secret:process.env.AUTH_SECRET})
 
   const isAuthenticated = !!token
   const pathname= request.nextUrl.pathname

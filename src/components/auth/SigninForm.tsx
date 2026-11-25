@@ -56,26 +56,35 @@ export default function SigninForm() {
     formState: { errors, isSubmitting },
   } = useForm<SigninValues>({
     resolver: zodResolver(signinSchema),
-    defaultValues: { email: "ahmeddd3333@gmail.com", password: "Ahmed@123" },
+    defaultValues: { email: "", password: "" },
     mode: "onTouched",
   });
   const router = useRouter()
 
   // Only runs when every field passes the schema
   async function onSubmit(values: SigninValues) {
-    const response = await signIn("credentials", {
-      email: values.email,
-      password: values.password,
-      redirect: false,
-    });
-if(response?.ok){
-router.push("/products")
-}else{
-  console.log(response)
-  setError("root",{
-    message:"Invalid email or password"
-  })
-}
+    try {
+      const response = await signIn("credentials", {
+        email: values.email,
+        password: values.password,
+        redirect: false,
+      });
+      if (response?.ok) {
+        router.push("/products");
+        return;
+      }
+      setError("root", {
+        message:
+          response?.error === "CredentialsSignin"
+            ? "Invalid email or password"
+            : "We couldn't sign you in right now. Please try again in a moment.",
+      });
+    } catch {
+      // signIn itself throws when our own server can't be reached
+      setError("root", {
+        message: "We couldn't reach the store. Check your connection and try again.",
+      });
+    }
   }
 
   return (

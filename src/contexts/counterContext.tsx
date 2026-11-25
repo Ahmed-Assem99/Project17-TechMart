@@ -17,21 +17,29 @@ export const counterContext = createContext<CounterContextT>({
 export default function CounterContextProvider({children}:{children:ReactNode}){
 
 const [numOfCartItems, setNumOfCartItems] = useState(0)
-// "loading" -> "authenticated" (signed in) or "unauthenticated" (signed out)
-const { status } = useSession()
+const { data: session } = useSession()
+// undefined while loading or signed out
+const userId = session?.user?.id
 
-// Runs again whenever status changes, so the badge reloads right after
-// signing in (the cart now belongs to whoever is logged in)
+// Runs again whenever the USER changes (not only when someone signs in or out),
+// so the badge always shows the cart of the user who is signed in right now
 useEffect(()=>{
-if(status!=="authenticated") return // no user -> no token -> nothing to load
+if(!userId) return // no user -> no token -> nothing to load
+let isCurrent = true
 apiServices.getUserCart().then((response)=>{
-  setNumOfCartItems(response.numOfCartItems ?? 0) // ?? 0: an error response has no numOfCartItems
+  // If the user changed while we were waiting, this answer belongs to the old user
+  if(isCurrent) setNumOfCartItems(response.numOfCartItems)
+}).catch(()=>{
+  // The badge is a small extra on every page, so a toast here would be noise.
+  // Show 0 and let the cart page explain the problem
+  if(isCurrent) setNumOfCartItems(0)
 })
-},[status])
+return ()=>{ isCurrent = false }
+},[userId])
 
 // Signed out -> always show 0, even if an old count is still in state
 const value = {
-  numOfCartItems: status==="authenticated" ? numOfCartItems : 0,
+  numOfCartItems: userId ? numOfCartItems : 0,
   setNumOfCartItems,
 }
 

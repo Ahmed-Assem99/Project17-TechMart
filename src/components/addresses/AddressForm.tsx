@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import FieldError from "@/components/form/FieldError";
+import { getErrorMessage } from "@/lib/apiError";
 import { cn } from "cn";
 import { AddressInput } from "@/types/response";
 
@@ -51,8 +52,8 @@ type AddressFormProps = {
   // Filled when editing, empty when adding
   defaultValues?: AddressInput;
   submitLabel: string;
-  // Return an error message to show it under the form, or nothing if it worked
-  onSubmit: (values: AddressInput) => Promise<string | void>;
+  // If it throws, the form shows the error message
+  onSubmit: (values: AddressInput) => Promise<void>;
   onCancel?: () => void;
 };
 
@@ -80,13 +81,9 @@ export default function AddressForm({
 
   async function submit(values: AddressInput) {
     try {
-      const errorMessage = await onSubmit(values);
-      if (errorMessage) setError("root", { message: errorMessage });
-    } catch {
-      // fetch throws when there's no internet / the server can't be reached
-      setError("root", {
-        message: "Something went wrong. Check your connection and try again.",
-      });
+      await onSubmit(values);
+    } catch (error) {
+      setError("root", { message: getErrorMessage(error) });
     }
   }
 

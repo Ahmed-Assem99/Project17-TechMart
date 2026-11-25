@@ -88,34 +88,42 @@ function ActiveMobileNavLinks() {
   return <MobileNavLinks pathName={pathName} />;
 }
 
-export default function Navbar() {
-  function DesktopNavLinks({ pathName }: { pathName: string }) {
-  return navItems.filter((el)=>{
-    return !(session.status=="unauthenticated"&&(el.href=="/cart"||el.href=="/allorders"||el.href=="/addresses"))
-  }).map((item) => (
-    <Link
-      key={item.title}
-      href={item.href}
-      className={cn(
-        "rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground",
-        isActive(pathName, item.href) &&
-          cn("bg-background shadow-sm", activeClassName),
-      )}
-    >
-      {item.title}
-    </Link>
-  ));
-}
-function ActiveDesktopNavLinks() {
-  const pathName = usePathname();
-  return (session.status!="loading" && <DesktopNavLinks pathName={pathName} />);
+// Links that only make sense when signed in
+const privateHrefs = ["/cart", "/allorders", "/addresses"];
+
+// These live outside Navbar on purpose: a component created inside another one is a
+// NEW component on every render, so React would remount it each time
+function DesktopNavLinks({ pathName }: { pathName: string }) {
+  const { status } = useSession();
+  return navItems
+    .filter((item) => !(status === "unauthenticated" && privateHrefs.includes(item.href)))
+    .map((item) => (
+      <Link
+        key={item.title}
+        href={item.href}
+        className={cn(
+          "rounded-full px-4 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground",
+          isActive(pathName, item.href) &&
+            cn("bg-background shadow-sm", activeClassName),
+        )}
+      >
+        {item.title}
+      </Link>
+    ));
 }
 
+function ActiveDesktopNavLinks() {
+  const pathName = usePathname();
+  const { status } = useSession();
+  return status !== "loading" && <DesktopNavLinks pathName={pathName} />;
+}
+
+export default function Navbar() {
   const session = useSession()
 
 const {count}=useSelector((state:RootState)=>state.counter)
 const dispatch = useDispatch()
-  let { numOfCartItems } = useContext(counterContext);
+  const { numOfCartItems } = useContext(counterContext);
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-md">
       <div className="bg-foreground text-background">
