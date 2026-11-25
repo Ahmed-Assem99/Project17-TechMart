@@ -18,6 +18,7 @@ import {
   VerifyTokenResponse,
 } from "@/types/response";
 import { BrandI, ProductI } from "@/interfaces/product";
+import { getSiteUrl } from "@/lib/siteUrl";
 
 class ApiServices {
   // Builds the headers for every request with the token of whoever is logged in.
@@ -139,7 +140,7 @@ class ApiServices {
   ): Promise<CheckoutResponse> {
     const response = await fetch(
       process.env.NEXT_PUBLIC_BASE_URL +
-        `/api/v1/orders/checkout-session/${cartId}?url=http://localhost:3000`,
+        `/api/v1/orders/checkout-session/${cartId}?url=${encodeURIComponent(getSiteUrl())}`,
       {
         body: JSON.stringify(shippingAddress),
         headers: await this.#getHeaders(),

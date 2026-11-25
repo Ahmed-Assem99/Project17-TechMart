@@ -107,6 +107,7 @@ cp .env.example .env.local
 | Variable | Secret? | What it is |
 | --- | --- | --- |
 | `NEXT_PUBLIC_BASE_URL` | No | Base URL of the e-commerce API |
+| `NEXT_PUBLIC_SITE_URL` | No | Address of the site, where Stripe returns customers after payment |
 | `AUTH_SECRET` | **Yes** | Encrypts the login cookies. Generate one with `openssl rand -base64 32` |
 | `NEXTAUTH_URL` | No | Address of the site (`http://localhost:3000` locally) |
 
@@ -125,7 +126,7 @@ npm run dev
 
 ## Deployment
 
-The app deploys to [Vercel](https://vercel.com) as is. Add the environment variables above in the project settings, with `NEXTAUTH_URL` set to the deployed URL.
+The app deploys to [Vercel](https://vercel.com) as is. Add the environment variables above in the project settings, with `NEXT_PUBLIC_SITE_URL` and `NEXTAUTH_URL` set to the deployed URL.
 
 ## Roadmap
 
