@@ -21,17 +21,18 @@ export type CategoriesResponse = ResponseT<CategoryI>
 export type SubcategoriesResponse = ResponseT<SubcategoryI>
 export type BrandsResponse = ResponseT<BrandI>
 
-// GET one category/brand by id. A wrong id gives 404 with statusMsg "fail" and no data
-export type CategoryResponse = { data?: CategoryI; statusMsg?: string; message?: string }
-export type BrandResponse = { data?: BrandI; statusMsg?: string; message?: string }
+// These types describe SUCCESSFUL answers only.
+// A failed request never returns: apiServices throws an ApiError (src/lib/apiError.ts)
+
+export type CategoryResponse = { data: CategoryI }
+export type BrandResponse = { data: BrandI }
 
 export type CartResponse = {
   status:         string;
   message:        string;
   numOfCartItems: number;
   cartId:         string;
-  data:           Data;
-  statusMsg: string;
+  data?:          Data; // missing when the user has no cart yet
 }
 
 export interface Data {
@@ -74,8 +75,6 @@ export interface Brand {
 
 export type CheckoutResponse={
   "status":string;
-  "message"?:string; // only on errors
-  "statusMsg"?:string; // "fail" on errors
   "session":{
     "url":string,
     "success_url":string,
@@ -83,7 +82,6 @@ export type CheckoutResponse={
   }
 }
 export type SigninResponse = {
-  statusMsg?:string
   message: string;
   user:    User;
   token:   string;
@@ -99,14 +97,11 @@ export interface User {
 export type CashOrderResponse = {
   status:     string; // "success"
   data?:      OrderI; // the new order
-  message?:   string; // only on errors
-  statusMsg?: string; // "fail" on errors
 }
 
 // GET /api/v1/auth/verifyToken -> who owns this token
 export type VerifyTokenResponse = {
   message: string; // "verified" when the token is valid
-  statusMsg?: string; // "fail" when the token is invalid
   decoded: {
     id:   string; // the user id we need for the orders API
     name: string;
@@ -171,7 +166,6 @@ export type AddressesResponse = {
   message?:   string;
   results?:   number;
   data:       AddressI[];
-  statusMsg?: string; // "fail" on errors
 }
 
 // GET one and PUT edit return just that ONE address
@@ -179,7 +173,6 @@ export type AddressResponse = {
   status:     string;
   message?:   string;
   data:       AddressI;
-  statusMsg?: string;
 }
 
 export interface ShippingAddress {

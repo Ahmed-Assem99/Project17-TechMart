@@ -12,6 +12,8 @@ import {
 
 import CartItem from "@/components/cart/CartItem";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
+import { getErrorMessage } from "@/lib/apiError";
 import { formatPrice } from "@/lib/utils";
 import { CartResponse } from "@/types/response";
 import apiServices from "@/services/apiServices";
@@ -23,7 +25,7 @@ const {setNumOfCartItems}=useContext(counterContext)
 
 useEffect(()=>{
 setNumOfCartItems(cart.numOfCartItems)
-},[])
+},[cart.numOfCartItems, setNumOfCartItems])
 
 
   const [items, setItems] = useState(cart.data?.products ?? []);
@@ -50,22 +52,17 @@ setNumOfCartItems(cart.numOfCartItems)
   }
 
   async function clearCart() {
-    const response = await apiServices.clearProductsFromCart();
-    if (response.status === "success") {
+    try {
+      await apiServices.clearProductsFromCart();
       setItems([]);
       setNumOfCartItems(0)
+    } catch (error) {
+      toast.add({
+        type: "error",
+        title: "Couldn't clear your cart",
+        description: getErrorMessage(error),
+      });
     }
-  }
-
-  if (!cart.data) {
-    return (
-      <div className="flex flex-col items-center gap-3 rounded-3xl bg-muted/40 px-6 py-20 text-center ring-1 ring-foreground/10">
-        <h2 className="text-xl font-semibold">
-          We couldn&apos;t load your cart
-        </h2>
-        <p className="max-w-sm text-sm text-muted-foreground">{cart.message}</p>
-      </div>
-    );
   }
 
   if (items.length === 0) {

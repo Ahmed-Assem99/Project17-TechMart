@@ -28,7 +28,11 @@ if(!userId) return // no user -> no token -> nothing to load
 let isCurrent = true
 apiServices.getUserCart().then((response)=>{
   // If the user changed while we were waiting, this answer belongs to the old user
-  if(isCurrent) setNumOfCartItems(response.numOfCartItems ?? 0) // ?? 0: an error response has no numOfCartItems
+  if(isCurrent) setNumOfCartItems(response.numOfCartItems)
+}).catch(()=>{
+  // The badge is a small extra on every page, so a toast here would be noise.
+  // Show 0 and let the cart page explain the problem
+  if(isCurrent) setNumOfCartItems(0)
 })
 return ()=>{ isCurrent = false }
 },[userId])

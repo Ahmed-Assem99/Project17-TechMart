@@ -1,9 +1,10 @@
 import Image from "next/image";
-import { notFound } from "next/navigation";
 
 import apiServices from "@/services/apiServices";
 import Breadcrumb from "@/components/shared/Breadcrumb";
 import ProductGrid from "@/components/product/ProductGrid";
+import { toResult } from "@/lib/apiError";
+import { orNotFound } from "@/lib/orNotFound";
 
 export default async function BrandDetails({
   params,
@@ -12,14 +13,16 @@ export default async function BrandDetails({
 }) {
   const { brandId } = await params;
 
-  const [brandResponse, products] = await Promise.all([
-    apiServices.getBrand(brandId),
-    apiServices.getAllProducts({ brand: brandId }),
+  // Both requests run together. A wrong id can make the products request fail too, so
+  // its error waits (toResult) until we know whether the brand exists
+  const [brandResponse, productsResult] = await Promise.all([
+    orNotFound(apiServices.getBrand(brandId)),
+    toResult(apiServices.getAllProducts({ brand: brandId })),
   ]);
+  if (!productsResult.ok) throw productsResult.error; // shows error.tsx
 
-  // Wrong id -> the API sends no data -> show Next.js's 404 page
   const brand = brandResponse.data;
-  if (!brand) notFound();
+  const products = productsResult.data;
 
   return (
     <main className="mx-auto w-full max-w-7xl px-6 py-8 sm:px-4 lg:py-12">

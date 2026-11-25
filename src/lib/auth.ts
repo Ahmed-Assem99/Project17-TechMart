@@ -1,6 +1,7 @@
 import CredentialsProvider from "next-auth/providers/credentials";
 import { NextAuthOptions } from "next-auth";
 import apiServices from "@/services/apiServices";
+import { ApiError } from "@/lib/apiError";
 
 // The NextAuth settings live here (not in route.ts) so other server code can use them.
 // getServerSession(authOptions) needs this object to read the logged-in user's session.
@@ -27,18 +28,26 @@ export const authOptions: NextAuthOptions = {
         },
       },
       async authorize(credentials) {
-        const response = await apiServices.Signin(
-          credentials?.email ?? "",
-          credentials?.password ?? "",
-        );
-        if (response.message == "success") {
+        if (!credentials?.email || !credentials.password) return null;
+        try {
+          const response = await apiServices.Signin(
+            credentials.email,
+            credentials.password,
+          );
           return {
             ...response.user,
             token: response.token,
             id: response.user.email,
           };
-        } else {
-          return null;
+        } catch (error) {
+          // The API refused these details -> null -> "CredentialsSignin"
+          if (error instanceof ApiError && (error.status === 400 || error.status === 401)) {
+            return null;
+          }
+          // The API is down, so don't tell the user their password is wrong.
+          // NextAuth sends this text to signIn() as response.error
+          console.error("Sign-in request failed:", error);
+          throw new Error("ServiceUnavailable");
         }
       },
     }),

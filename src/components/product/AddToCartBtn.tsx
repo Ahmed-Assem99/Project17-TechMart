@@ -6,6 +6,7 @@ import { toast } from '../ui/toast';
 import apiServices from '@/services/apiServices';
 import { ProductI } from '@/interfaces/product';
 import { counterContext } from '@/contexts/counterContext';
+import { getErrorMessage } from '@/lib/apiError';
 
 export default function AddToCartBtn(product:ProductI) {
   const {setNumOfCartItems}=useContext(counterContext)
@@ -16,8 +17,15 @@ export default function AddToCartBtn(product:ProductI) {
       const response = await apiServices.addProductToCart(product._id)
       setNumOfCartItems(response.numOfCartItems)
       toast.add({
-        title:response.status ?? response.statusMsg,
+        type:"success",
+        title:"Added to cart",
         description:response.message
+      })
+    } catch (error) {
+      toast.add({
+        type:"error",
+        title:"Couldn't add to cart",
+        description:getErrorMessage(error)
       })
     } finally {
       setIsAdding(false)

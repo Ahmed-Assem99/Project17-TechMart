@@ -1,43 +1,36 @@
 import Link from "next/link";
-import { CircleAlert, Package } from "lucide-react";
+import { Package } from "lucide-react";
 
 import apiServices from "@/services/apiServices";
 import OrderCard from "@/components/orders/OrderCard";
+import RequestError from "@/components/shared/RequestError";
 import { Button } from "@/components/ui/button";
+import { toResult } from "@/lib/apiError";
 
-export default async function Orders() {
+// Two requests, one after the other: the second one needs the id from the first
+async function getMyOrders() {
   // Step 1: ask the API who owns the token -> gives us the user id
   const verified = await apiServices.verifyToken();
+  // Step 2: use the user id to get their orders
+  return apiServices.getUserOrders(verified.decoded.id);
+}
 
-  // Invalid or expired token: there's no user id, so we can't load orders
-  if (verified.message !== "verified") {
+export default async function Orders() {
+  const result = await toResult(getMyOrders());
+
+  if (!result.ok) {
     return (
       <main className="mx-auto w-full max-w-4xl px-6 py-8 sm:px-4 lg:py-12">
-        <div className="flex flex-col items-center gap-4 rounded-3xl bg-muted/40 px-6 py-20 text-center ring-1 ring-foreground/10">
-          <span className="flex size-16 items-center justify-center rounded-full bg-destructive/10 text-destructive">
-            <CircleAlert className="size-7" />
-          </span>
-          <h1 className="text-2xl font-bold tracking-tight">
-            We couldn&apos;t load your orders
-          </h1>
-          <p className="max-w-sm text-muted-foreground">
-            Your session may have expired. Please sign in again.
-          </p>
-          <Button
-            size="lg"
-            className="h-11 rounded-full px-6"
-            nativeButton={false}
-            render={<Link href="/auth/signin" />}
-          >
-            Sign in
-          </Button>
-        </div>
+        <RequestError
+          title="We couldn't load your orders"
+          message={result.error.message}
+          needsSignIn={result.error.isUnauthorized}
+        />
       </main>
     );
   }
 
-  // Step 2: use the user id to get their orders
-  const orders = await apiServices.getUserOrders(verified.decoded.id);
+  const orders = result.data;
 
   // The API returns oldest first; show the newest order at the top.
   // [...orders] copies the array so we don't change the original

@@ -4,6 +4,7 @@ import { ChevronRight, RotateCcw, ShieldCheck, Star, Truck } from "lucide-react"
 import apiServices from "@/services/apiServices"
 import ProductGallery from "@/components/product/ProductGallery"
 import ProductActions from "@/components/product/ProductActions"
+import { orNotFound } from "@/lib/orNotFound"
 import { formatPrice } from "@/lib/utils"
 import { cn } from "cn"
 
@@ -31,7 +32,7 @@ function parseDescription(description: string) {
 
 export default async function ProductDetails({params}:ProductDetailsProps) {
   const { productId } = await params
-  const { data: product } = await apiServices.getProductDetails(productId)
+  const { data: product } = await orNotFound(apiServices.getProductDetails(productId))
 
   const images = product.images.length ? product.images : [product.imageCover]
   const { specs, text } = parseDescription(product.description)

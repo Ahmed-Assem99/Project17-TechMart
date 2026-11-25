@@ -1,11 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import { cn } from "cn";
 
 import apiServices from "@/services/apiServices";
 import Breadcrumb from "@/components/shared/Breadcrumb";
 import ProductGrid from "@/components/product/ProductGrid";
+import { toResult } from "@/lib/apiError";
+import { orNotFound } from "@/lib/orNotFound";
 
 type CategoryDetailsProps = {
   params: Promise<{ categoryId: string }>;
@@ -21,15 +22,22 @@ export default async function CategoryDetails({ params, searchParams }: Category
   const { categoryId } = await params;
   const { sub } = await searchParams;
 
-  const [categoryResponse, subcategoriesResponse, products] = await Promise.all([
-    apiServices.getCategory(categoryId),
-    apiServices.getSubcategories(categoryId),
-    apiServices.getAllProducts({ category: categoryId }),
+  // The requests run together. A wrong id can make the other requests fail too, so
+  // their error waits (toResult) until we know whether the category exists
+  const [categoryResponse, listsResult] = await Promise.all([
+    orNotFound(apiServices.getCategory(categoryId)),
+    toResult(
+      Promise.all([
+        apiServices.getSubcategories(categoryId),
+        apiServices.getAllProducts({ category: categoryId }),
+      ]),
+    ),
   ]);
+  if (!listsResult.ok) throw listsResult.error; // shows error.tsx
 
-  // Wrong id -> the API sends no data -> show Next.js's 404 page
+  const [subcategoriesResponse, products] = listsResult.data;
+
   const category = categoryResponse.data;
-  if (!category) notFound();
 
   const subcategories = subcategoriesResponse.data ?? [];
   // A product can belong to several subcategories

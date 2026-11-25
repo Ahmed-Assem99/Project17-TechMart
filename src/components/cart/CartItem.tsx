@@ -6,6 +6,8 @@ import { motion } from "framer-motion";
 import { Minus, Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/toast";
+import { getErrorMessage } from "@/lib/apiError";
 import { formatPrice } from "@/lib/utils";
 import { ProductElement } from "@/types/response";
 import apiServices from "@/services/apiServices";
@@ -62,29 +64,36 @@ const {setNumOfCartItems}=useContext(counterContext)
 
     // Step 3: wait 500ms, then send only the latest count to the server.
     timeOut.current = setTimeout(async () => {
-      // .catch turns a network failure into null, so it's handled as a failure below
-      const response = await apiServices
-        .updateProductCount(product._id, newCount)
-        .catch(() => null);
-
-      if (response?.status === "success") {
+      try {
+        const response = await apiServices.updateProductCount(product._id, newCount);
         // The server accepted it, so remember this as the correct count.
         confirmedCount.current = newCount;
         setNumOfCartItems(response.numOfCartItems)
-      } else {
+      } catch (error) {
         // The request failed, but the screen already shows the new number.
         // Put back the last count the server accepted so the screen isn't wrong.
         onCountChange(product._id, confirmedCount.current);
+        toast.add({
+          type: "error",
+          title: "Couldn't update the quantity",
+          description: getErrorMessage(error),
+        });
       }
     }, 500);
   }
 
   async function removeItem() {
     clearTimeout(timeOut.current);
-    const response = await apiServices.removeProductFromCart(product._id);
-    if (response.status === "success") {
+    try {
+      const response = await apiServices.removeProductFromCart(product._id);
       onRemove(product._id);
       setNumOfCartItems(response.numOfCartItems)
+    } catch (error) {
+      toast.add({
+        type: "error",
+        title: "Couldn't remove the product",
+        description: getErrorMessage(error),
+      });
     }
   }
 

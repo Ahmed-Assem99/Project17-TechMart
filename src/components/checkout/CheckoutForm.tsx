@@ -19,6 +19,7 @@ import AddressForm from "@/components/addresses/AddressForm";
 import { AddressIcon } from "@/components/addresses/AddressCard";
 import { counterContext } from "@/contexts/counterContext";
 import apiServices from "@/services/apiServices";
+import { getErrorMessage } from "@/lib/apiError";
 import { AddressI, AddressInput } from "@/types/response";
 import { cn } from "cn";
 
@@ -77,9 +78,9 @@ export default function CheckoutForm({ cartId, initialAddresses }: CheckoutFormP
   const isCash = paymentMethod === "cash";
 
   // A new address typed at checkout is also saved to the address book
-  async function handleAddNew(values: AddressInput): Promise<string | void> {
+  // (errors aren't caught here: AddressForm shows them under the form)
+  async function handleAddNew(values: AddressInput): Promise<void> {
     const response = await apiServices.addAddress(values);
-    if (response.status !== "success") return response.message ?? "Couldn't save the address";
     setAddresses(response.data);
     setSelectedId(response.data[response.data.length - 1]._id); // the API puts the new one last
     setIsAddingNew(false);
@@ -92,16 +93,12 @@ export default function CheckoutForm({ cartId, initialAddresses }: CheckoutFormP
     try {
       // 1. We only keep the selected address's id; get its data from the API using that id
       const addressResponse = await apiServices.getAddress(selectedId);
-      if (addressResponse.status !== "success") {
-        throw new Error(addressResponse.message ?? "Couldn't load the selected address");
-      }
       const { details, phone, city } = addressResponse.data;
       const shippingAddress = { details, phone, city };
 
       if (isCash) {
         // 2a. CASH: the order is created right away and the API empties the cart
-        const response = await apiServices.createCashOrder(cartId, { shippingAddress });
-        if (response.status !== "success") throw new Error(response.message);
+        await apiServices.createCashOrder(cartId, { shippingAddress });
         setNumOfCartItems(0); // the navbar badge: the cart is empty now
         toast.add({ title: "Order placed", description: "You'll pay in cash when it arrives." });
         router.push("/allorders");
@@ -111,15 +108,15 @@ export default function CheckoutForm({ cartId, initialAddresses }: CheckoutFormP
       // 2b. CARD: create a Stripe session and go to Stripe's payment page
       // (a different website, so window.location instead of router.push)
       const response = await apiServices.Checkout(cartId, { shippingAddress });
-      if (response.status !== "success") throw new Error(response.message);
       window.location.href = response.session.url;
     } catch (err) {
       setError(
-        err instanceof Error && err.message
-          ? err.message
-          : isCash
+        getErrorMessage(
+          err,
+          isCash
             ? "Couldn't place your order. Please try again."
             : "Couldn't start the payment. Please try again.",
+        ),
       );
       setIsPlacing(false);
     }

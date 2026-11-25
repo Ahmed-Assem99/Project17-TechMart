@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
 import { toast } from "@/components/ui/toast";
 import apiServices from "@/services/apiServices";
+import { getErrorMessage } from "@/lib/apiError";
 import { AddressI, AddressInput } from "@/types/response";
 import AddressCard from "./AddressCard";
 import AddressForm from "./AddressForm";
@@ -25,11 +26,11 @@ export default function AddressBook({ initialAddresses }: { initialAddresses: Ad
     setIsFormOpen(true);
   }
 
-  async function handleSave(values: AddressInput): Promise<string | void> {
+  // Errors aren't caught here: AddressForm shows them under the form
+  async function handleSave(values: AddressInput): Promise<void> {
     // ADD: the API answers with the whole list, new address at the end
     if (!editing) {
       const response = await apiServices.addAddress(values);
-      if (response.status !== "success") return response.message ?? "Couldn't save the address";
       setAddresses(response.data);
       toast.add({ title: "Address added", description: `"${values.name}" was saved.` });
       setIsFormOpen(false);
@@ -39,7 +40,6 @@ export default function AddressBook({ initialAddresses }: { initialAddresses: Ad
     // EDIT, same name: PUT updates details/phone/city and keeps the same _id
     if (values.name === editing.name) {
       const response = await apiServices.updateAddress(editing._id, values);
-      if (response.status !== "success") return response.message ?? "Couldn't update the address";
       setAddresses((list) =>
         list.map((address) => (address._id === editing._id ? response.data : address)),
       );
@@ -48,9 +48,18 @@ export default function AddressBook({ initialAddresses }: { initialAddresses: Ad
       // with the new name, then delete the old one. Adding first means that
       // if the delete fails, the address isn't lost
       const added = await apiServices.addAddress(values);
-      if (added.status !== "success") return added.message ?? "Couldn't update the address";
-      const removed = await apiServices.removeAddress(editing._id);
-      setAddresses(removed.status === "success" ? removed.data : added.data);
+      const removed = await apiServices.removeAddress(editing._id).catch(() => null);
+      setAddresses(removed?.data ?? added.data);
+      if (!removed) {
+        // The new copy is saved, so close the form: saving again would add a third one
+        toast.add({
+          type: "warning",
+          title: "The old address is still there",
+          description: `"${values.name}" was saved, but we couldn't delete "${editing.name}". You can delete it yourself.`,
+        });
+        setIsFormOpen(false);
+        return;
+      }
     }
     toast.add({ title: "Address updated", description: `"${values.name}" was saved.` });
     setIsFormOpen(false);
@@ -59,11 +68,14 @@ export default function AddressBook({ initialAddresses }: { initialAddresses: Ad
   async function handleDelete(address: AddressI) {
     try {
       const response = await apiServices.removeAddress(address._id);
-      if (response.status !== "success") throw new Error(response.message);
       setAddresses(response.data);
       toast.add({ title: "Address deleted", description: `"${address.name}" was removed.` });
-    } catch {
-      toast.add({ title: "Couldn't delete the address", description: "Please try again." });
+    } catch (error) {
+      toast.add({
+        type: "error",
+        title: "Couldn't delete the address",
+        description: getErrorMessage(error),
+      });
     }
   }
 
