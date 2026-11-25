@@ -56,7 +56,7 @@ export default function SigninForm() {
     formState: { errors, isSubmitting },
   } = useForm<SigninValues>({
     resolver: zodResolver(signinSchema),
-    defaultValues: { email: "ahmeddd3333@gmail.com", password: "Ahmed@123" },
+    defaultValues: { email: "", password: "" },
     mode: "onTouched",
   });
   const router = useRouter()
@@ -71,7 +71,6 @@ export default function SigninForm() {
 if(response?.ok){
 router.push("/products")
 }else{
-  console.log(response)
   setError("root",{
     message:"Invalid email or password"
   })
